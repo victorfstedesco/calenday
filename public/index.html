@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Calenday</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Calenday">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#fbfbfc">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<!-- ícones reutilizáveis -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/>
+  </symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>
+  </symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+    <path d="M12 5v14M5 12h14"/>
+  </symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>
+  </symbol>
+  <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+  </symbol>
+</svg>
+
+<!-- ===== LOGIN ===== -->
+<div id="auth" class="auth hidden">
+  <div class="auth-box">
+    <div class="auth-logo"><svg><use href="#i-cal"/></svg></div>
+    <h1>Calenday</h1>
+    <p class="sub" id="auth-sub">Seus compromissos e demandas num lugar só</p>
+    <div class="field"><input type="text" id="a-user" placeholder="Usuário" autocomplete="username"></div>
+    <div class="field"><input type="password" id="a-pass" placeholder="Senha" autocomplete="current-password"></div>
+    <div class="field hidden" id="a-email-f"><input type="email" id="a-email" placeholder="Email (recebe os avisos)"></div>
+    <button class="btn btn-primary" id="a-submit" style="width:100%">Entrar</button>
+    <div class="err" id="a-err"></div>
+    <div class="switch"><span id="a-switch-txt">Não tem conta?</span> <button id="a-switch">Cadastre-se</button></div>
+  </div>
+</div>
+
+<!-- ===== APP ===== -->
+<div id="app" class="app hidden">
+
+  <aside class="sidebar">
+    <div class="brand"><div class="mark"><svg><use href="#i-cal"/></svg></div><div class="n">Calenday</div></div>
+    <div class="sec">VISUALIZAR</div>
+    <button class="nav-item on" data-view="week"><svg><use href="#i-cal"/></svg>Calendário</button>
+    <button class="nav-item" data-view="list"><svg><use href="#i-list"/></svg>Lista</button>
+    <div class="spacer"></div>
+    <button class="nav-item" id="side-logout"><svg><use href="#i-out"/></svg>Sair</button>
+  </aside>
+
+  <main class="main">
+    <div class="container">
+      <div class="topbar">
+        <div class="grow">
+          <h1 id="page-title">Calendário</h1>
+          <div class="sub" id="page-sub"></div>
+        </div>
+        <div class="head-actions">
+          <div class="view-toggle" id="view-toggle">
+            <button data-view="week" class="on" title="Calendário"><svg><use href="#i-cal"/></svg></button>
+            <button data-view="list" title="Lista"><svg><use href="#i-list"/></svg></button>
+          </div>
+          <button class="add-btn" data-new><svg><use href="#i-plus"/></svg>Novo</button>
+        </div>
+      </div>
+
+      <div class="push-banner hidden" id="push-banner">
+        <div class="grow">Ative as notificações neste aparelho para receber os avisos.</div>
+        <button id="push-enable">Ativar</button>
+      </div>
+
+      <div id="controls"></div>
+      <div id="view-root"></div>
+    </div>
+  </main>
+</div>
+
+<!-- ===== SHEET ===== -->
+<div class="backdrop hidden" id="backdrop"></div>
+<div class="sheet hidden" id="sheet">
+  <div class="sheet-inner">
+    <div class="grab"></div>
+    <div class="sheet-head">
+      <h2 id="sheet-title">Novo item</h2>
+      <button class="icon-btn" id="sheet-close">✕</button>
+    </div>
+
+    <div class="field">
+      <div class="label">O QUE É</div>
+      <div class="type-pick" id="f-kind">
+        <button data-kind="event" class="on"><div class="n">Evento</div><div class="d">acontece num horário</div></button>
+        <button data-kind="task"><div class="n">Tarefa</div><div class="d">precisa ser feita</div></button>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">TÍTULO</div>
+      <input type="text" id="f-title" placeholder="Ex: Reunião com cliente" maxlength="200">
+    </div>
+
+
+
+    <div class="field">
+      <div class="label">QUANDO</div>
+      <div class="picker">
+        <div class="range-sum">
+          <button id="f-start-btn" class="on"><div class="l">INÍCIO</div><div class="v" id="f-start-v">—</div></button>
+          <button id="f-end-btn"><div class="l">FIM</div><div class="v" id="f-end-v">—</div></button>
+        </div>
+        <div class="pick-head">
+          <div class="m" id="pick-month"></div>
+          <button class="icon-btn" id="pick-prev">‹</button>
+          <button class="icon-btn" id="pick-next">›</button>
+        </div>
+        <div class="dow"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+        <div class="pick-grid" id="pick-grid"></div>
+        <div class="hint">Toque no dia de início e depois no de fim. Para um dia só, toque duas vezes no mesmo dia.</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <div class="label">HORÁRIO <span class="opt">opcional · o fim define o tamanho na régua</span></div>
+      <div class="time-row">
+        <input type="time" id="f-time" aria-label="Início">
+        <span class="time-sep">até</span>
+        <input type="time" id="f-end-time" aria-label="Fim">
+        <button class="ghost-btn" id="f-time-clear">Limpar</button>
+      </div>
+      <div class="hint" id="f-time-hint"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">CONTEÚDO <span class="opt">/ para comandos</span></div>
+      <div class="ed" id="f-editor"></div>
+      <input type="file" id="f-photo" accept="image/*" multiple class="hidden">
+    </div>
+
+    <div class="field">
+      <div class="label">REPETIR</div>
+      <div class="seg seg-wide" id="f-repeat">
+        <button data-rep="none" class="on">Nunca</button>
+        <button data-rep="daily">Todo dia</button>
+        <button data-rep="weekdays">Seg a sex</button>
+        <button data-rep="weekly">Semanal</button>
+        <button data-rep="monthly">Mensal</button>
+      </div>
+      <div class="hint" id="f-repeat-hint"></div>
+    </div>
+
+    <div class="field">
+      <div class="label">PRIORIDADE</div>
+      <div class="seg seg-wide" id="f-prio">
+        <button data-prio="0">Baixa</button>
+        <button data-prio="1" class="on">Normal</button>
+        <button data-prio="2">Alta</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="switch-row" id="f-nag-row">
+        <div>
+          <div class="sw-title">Insistir até eu dar check</div>
+          <div class="sw-hint">Reenvia o aviso a cada 30 minutos enquanto estiver pendente</div>
+        </div>
+        <span class="sw" id="f-nag"><span class="sw-knob"></span></span>
+      </label>
+    </div>
+
+    <div class="notify-note"><svg><use href="#i-bell"/></svg>Avisamos por push e por email</div>
+
+    <div class="actions">
+      <button class="btn btn-danger hidden" id="f-delete">Excluir</button>
+      <button class="btn btn-ghost" id="f-cancel">Cancelar</button>
+      <button class="btn btn-primary" id="f-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/recurrence.js"></script>
+<script src="/editor.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

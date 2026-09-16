@@ -296,7 +296,13 @@ function renderWeek(root){
 
   const allday=inWeek.filter(it=>!it.time);
   const timed=inWeek.filter(it=>it.time);
-  const hours=[...Array(15)].map((_,i)=>7+i);
+  let minH=7, maxH=21;
+  for(const it of timed){
+    const h=Number(it.time.slice(0,2));
+    minH=Math.min(minH,h);
+    maxH=Math.max(maxH,h);
+  }
+  const hours=[...Array(maxH-minH+1)].map((_,i)=>minH+i);
 
   if(window.matchMedia('(min-width:900px)').matches){
     let h=`<div class="card card-pad"><div class="wk-grid">
@@ -434,7 +440,7 @@ function renderDayTimeline(dstr){
     from=Math.min(from, Math.floor(nm/60)*60);
     to=Math.max(to, Math.ceil(nm/60)*60);
   }
-  from=Math.max(5*60, from); to=Math.min(24*60, Math.max(to, from+180));
+  from=Math.max(0, from); to=Math.min(24*60, Math.max(to, from+180));
   const hours=[]; for(let m=from;m<=to;m+=60) hours.push(m);
   const total=to-from;
 

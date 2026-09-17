@@ -159,12 +159,12 @@ async function loadItems(){
    NAVEGAÇÃO DE VIEWS
    ========================================================== */
 function setView(v){
-  if(v==='week'||v==='month') S.calView=v;
+  if(v==='week'||v==='month'||v==='day') S.calView=v;
   S.view=v;
-  // o botão de calendário fica aceso tanto em semana quanto em mês
+  // o botão de calendário fica aceso em semana, mês e dia
   document.querySelectorAll('#view-toggle [data-view], .sidebar [data-view]').forEach(b=>{
     const isCalBtn = b.dataset.view==='week';
-    b.classList.toggle('on', isCalBtn ? (v==='week'||v==='month') : b.dataset.view===v);
+    b.classList.toggle('on', isCalBtn ? (v==='week'||v==='month'||v==='day') : b.dataset.view===v);
   });
   render();
 }
@@ -183,6 +183,7 @@ function render(){
   const root=$('view-root');
   if(S.view==='week') renderWeek(root);
   else if(S.view==='month') renderMonth(root);
+  else if(S.view==='day') renderDay(root);
   else renderList(root);
 }
 
@@ -191,17 +192,21 @@ function renderControls(){
   const c=$('controls');
   if(S.view==='list'){ c.innerHTML=''; return; }
   const isWeek=S.view==='week';
+  const isDay=S.view==='day';
   let now;
   if(isWeek){
     const ws=startOfWeek(S.cursor), we=addDays(ws,6);
     now = `${ws.getDate()} ${MON_SHORT[ws.getMonth()]} – ${we.getDate()} ${MON_SHORT[we.getMonth()]}`;
+  } else if(isDay){
+    now = fmtLong(S.selected);
   } else {
     now = `${MONTHS[S.cursor.getMonth()]} ${S.cursor.getFullYear()}`;
   }
   c.innerHTML=`<div class="controls">
     <div class="seg">
+      <button data-cal="day" class="${isDay?'on':''}">Dia</button>
       <button data-cal="week" class="${isWeek?'on':''}">Semana</button>
-      <button data-cal="month" class="${!isWeek?'on':''}">Mês</button>
+      <button data-cal="month" class="${S.view==='month'?'on':''}">Mês</button>
     </div>
     <div class="stepper">
       <button class="icon-btn" data-step="-1">‹</button>
@@ -215,6 +220,7 @@ function renderControls(){
     const v=Number(b.dataset.step);
     if(v===0){ S.cursor=new Date(); S.selected=ymd(new Date()); }
     else if(isWeek) S.cursor=addDays(S.cursor, v*7);
+    else if(isDay) S.selected=ymd(addDays(parse(S.selected), v));
     else S.cursor=new Date(S.cursor.getFullYear(), S.cursor.getMonth()+v, 1);
     render();
   }));
@@ -314,13 +320,13 @@ function renderWeek(root){
       h+=`<div class="allday-row"><div class="l">DIA<br>INTEIRO</div><div class="slot">
         ${allday.map(it=>blockHtml(it,true,ymd(days[0]))).join('')}</div></div>`;
     }
-    h+=`<div class="wk-grid">`;
+    h+=`<div class="wk-grid wk-grid-hours" data-tlgrid data-basehour="${hours[0]}">`;
     for(const hr of hours){
       h+=`<div class="h-label">${pad(hr)}:00</div>`;
       for(const d of days){
         const ds=ymd(d);
         const here=timed.filter(it=>coversDay(it,ds) && Number(it.time.slice(0,2))===hr);
-        h+=`<div class="cell">${here.map(it=>blockHtml(it,true,ds)).join('')}</div>`;
+        h+=`<div class="cell" data-tlday="${ds}" data-hr="${hr}">${here.map(it=>blockHtml(it,true,ds)).join('')}</div>`;
       }
     }
     h+=`</div></div>`;
@@ -346,6 +352,27 @@ function renderWeek(root){
     root.innerHTML=h;
   }
   wire(root);
+}
+
+/* ---------- DIA ----------
+   Régua horizontal do dia selecionado, em qualquer tamanho de tela —
+   parecida com um board de agenda: horas correndo da esquerda pra
+   direita, marcador do horário atual cruzando os blocos. */
+function renderDay(root){
+  $('page-title').textContent='Calendário';
+  const inDay=S.items.filter(it=>coversDay(it,S.selected));
+  $('page-sub').textContent=`${inDay.length} ${inDay.length===1?'item':'itens'} neste dia`;
+  root.innerHTML = `<div class="card card-pad day-card">${renderDayTimeline(S.selected, true)}</div>`;
+  wire(root);
+  // a régua estica pra preencher até o fim da tela, no estilo board de agenda
+  requestAnimationFrame(()=>{
+    const scrollEl = root.querySelector('.tk-scroll');
+    const trackEl = root.querySelector('.tk-track');
+    if(!scrollEl || !trackEl) return;
+    const avail = scrollEl.clientHeight;
+    const cur = trackEl.getBoundingClientRect().height;
+    if(avail > cur) trackEl.style.height = avail + 'px';
+  });
 }
 
 /* ---------- MÊS ---------- */
@@ -417,14 +444,10 @@ function assignLanes(items){
   return { laned, lanes: Math.max(1, laneEnds.length) };
 }
 
-function renderDayTimeline(dstr){
+function renderDayTimeline(dstr, forceHorizontal){
   const all = itemsOn(dstr);
   const allday = all.filter(it=>!it.time);
   const timed  = all.filter(it=>it.time).sort((a,b)=>toMin(a.time)-toMin(b.time));
-
-  if(!all.length){
-    return groupHtml(fmtLong(dstr), null, null, `<div class="empty">Nada marcado neste dia</div>`);
-  }
 
   // a régua cobre os itens do dia, com folga, dentro de 6h–23h
   let from=8*60, to=19*60;
@@ -444,7 +467,7 @@ function renderDayTimeline(dstr){
   const hours=[]; for(let m=from;m<=to;m+=60) hours.push(m);
   const total=to-from;
 
-  const isDesktop=window.matchMedia('(min-width:900px)').matches;
+  const isDesktop=forceHorizontal || window.matchMedia('(min-width:900px)').matches;
   const PX=isDesktop?MIN_PX_H:MIN_PX_V;
   const size=(total/60)*PX;
 
@@ -463,17 +486,25 @@ function renderDayTimeline(dstr){
       : `<div class="tk-h" style="top:${pos}px"><span>${fromMin(m)}</span></div>`;
   }).join('');
 
+  // altura fixa de cada faixa no modo horizontal: o card não pode crescer
+  // só porque a régua foi esticada até o fim da tela (isso é só espaço vazio)
+  const ROW_H=58, ROW_GAP=4;
+
   const blocks=laned.map(({it,start,end,lane})=>{
     const done=isDone(it,dstr);
     const pos=((start-from)/total)*size;
     const len=Math.max(((end-start)/total)*size, isDesktop?84:46);
     // bloco curto não comporta título em duas linhas nem horário embaixo
     const short = isDesktop ? len < 150 : len < 60;
-    const laneSize=`calc((100% - ${(lanes-1)*4}px) / ${lanes})`;
-    const laneOff=`calc((${laneSize} + 4px) * ${lane})`;
-    const style=isDesktop
-      ? `left:${pos}px;width:${len}px;top:${laneOff};height:${laneSize}`
-      : `top:${pos}px;height:${len}px;left:${laneOff};width:${laneSize}`;
+    let style;
+    if(isDesktop){
+      const top=lane*(ROW_H+ROW_GAP);
+      style=`left:${pos}px;width:${len}px;top:${top}px;height:${ROW_H}px`;
+    } else {
+      const laneSize=`calc((100% - ${(lanes-1)*4}px) / ${lanes})`;
+      const laneOff=`calc((${laneSize} + 4px) * ${lane})`;
+      style=`top:${pos}px;height:${len}px;left:${laneOff};width:${laneSize}`;
+    }
     const horas = it.end_time ? `${it.time} – ${it.end_time}` : it.time;
     return `<button class="tk-block ${kindOf(it)} ${done?'done':''} ${short?'short':''}" style="${style}" data-edit="${it.id}" title="${esc(it.title)} · ${horas}">
       <span class="tk-bar"></span>
@@ -485,7 +516,7 @@ function renderDayTimeline(dstr){
   }).join('');
 
   const trackStyle = isDesktop
-    ? `width:${size}px;height:${Math.max(74, lanes*58)}px`
+    ? `width:${size}px;height:${Math.max(74, lanes*(ROW_H+ROW_GAP))}px`
     : `height:${size}px`;
 
   const alldayHtml = allday.length
@@ -498,7 +529,7 @@ function renderDayTimeline(dstr){
   const body = `${alldayHtml}
     <div class="tk ${isDesktop?'tk-h-mode':'tk-v-mode'}">
       <div class="tk-scroll">
-        <div class="tk-track" style="${trackStyle}">
+        <div class="tk-track" data-tl data-tlday="${dstr}" data-from="${from}" data-to="${to}" data-size="${size}" data-desktop="${isDesktop?1:0}" style="${trackStyle}">
           ${ruler}
           ${showNow?`<div class="tk-now" style="${isDesktop?`left:${nowPos}px`:`top:${nowPos}px`}"><span class="tk-now-tag">${fromMin(nowMin)}</span></div>`:''}
           <div class="tk-blocks">${blocks}</div>
@@ -506,7 +537,7 @@ function renderDayTimeline(dstr){
       </div>
     </div>`;
 
-  return groupHtml(fmtLong(dstr), all.length, null, body);
+  return groupHtml(fmtLong(dstr), all.length || null, null, body);
 }
 
 /* ---------- LISTA (timeline) ---------- */
@@ -641,12 +672,165 @@ function wire(root){
     lb.addEventListener('click',()=>lb.remove());
     document.body.appendChild(lb);
   }));
+  wireTimelineSelect(root);
+}
+
+/* ==========================================================
+   SELEÇÃO POR ARRASTE NA RÉGUA DO DIA
+   Clique simples cria um item de 1h no horário tocado.
+   Arrastar define o intervalo exato (início e fim).
+   No mobile, um arrasto na direção errada é tratado como rolagem
+   da página, não como seleção, pra não brigar com o scroll.
+   ========================================================== */
+function wireTimelineSelect(root){
+  root.querySelectorAll('.tk-track[data-tl]').forEach(track=>{
+    const from=Number(track.dataset.from), to=Number(track.dataset.to), size=Number(track.dataset.size);
+    const isDesktop = track.dataset.desktop==='1';
+    const dstr = track.dataset.tlday;
+    const total = to-from;
+    const blocksEl = track.querySelector('.tk-blocks');
+
+    let mode=null;       // null | 'maybe' | 'drag' | 'scroll'
+    let downX=0, downY=0, startMin=0;
+    let selEl=null;
+
+    function posToMin(clientX, clientY){
+      const rect=track.getBoundingClientRect();
+      const p = isDesktop ? (clientX-rect.left) : (clientY-rect.top);
+      const raw = from + (p/size)*total;
+      const snapped = Math.round(raw/15)*15;
+      return Math.max(from, Math.min(to, snapped));
+    }
+    function showSel(a,b){
+      if(!selEl){
+        selEl=document.createElement('div');
+        selEl.className='tk-select';
+        selEl.innerHTML='<span class="tk-select-label"></span>';
+        blocksEl.appendChild(selEl);
+      }
+      const s=Math.min(a,b), e=Math.max(a,b);
+      const pos=((s-from)/total)*size;
+      const len=Math.max(((e-s)/total)*size, 2);
+      if(isDesktop){ selEl.style.cssText=`left:${pos}px;width:${len}px;top:0;height:100%`; }
+      else { selEl.style.cssText=`top:${pos}px;height:${len}px;left:0;width:100%`; }
+      selEl.querySelector('.tk-select-label').textContent = `${fromMin(s)} – ${fromMin(e)}`;
+    }
+    function clearSel(){ if(selEl){ selEl.remove(); selEl=null; } }
+
+    track.addEventListener('pointerdown', e=>{
+      if(e.target.closest('.tk-block') || e.button) return;
+      e.preventDefault();
+      mode='maybe';
+      downX=e.clientX; downY=e.clientY;
+      startMin=posToMin(e.clientX, e.clientY);
+    });
+    track.addEventListener('pointermove', e=>{
+      if(!mode) return;
+      const dx=e.clientX-downX, dy=e.clientY-downY;
+      if(mode==='maybe'){
+        const primary = isDesktop ? Math.abs(dx) : Math.abs(dy);
+        const cross   = isDesktop ? Math.abs(dy) : Math.abs(dx);
+        if(primary<6 && cross<6) return;
+        mode = primary>cross ? 'drag' : 'scroll';
+        if(mode==='drag') track.setPointerCapture(e.pointerId);
+      }
+      if(mode==='drag'){
+        e.preventDefault();
+        showSel(startMin, posToMin(e.clientX, e.clientY));
+      }
+    });
+    track.addEventListener('pointerup', e=>{
+      const dx=e.clientX-downX, dy=e.clientY-downY;
+      const moved = Math.abs(dx)>6 || Math.abs(dy)>6;
+      if(mode==='drag'){
+        const endMin=posToMin(e.clientX, e.clientY);
+        clearSel();
+        let s=Math.min(startMin,endMin), en=Math.max(startMin,endMin);
+        if(en-s<30) en=Math.min(to, s+60);
+        openSheet(null, { date:dstr, time:fromMin(s), endTime:fromMin(en) });
+      } else if(mode==='maybe' && !moved){
+        openSheet(null, { date:dstr, time:fromMin(startMin), endTime:fromMin(Math.min(to, startMin+60)) });
+      }
+      mode=null; clearSel();
+    });
+    track.addEventListener('pointercancel', ()=>{ mode=null; clearSel(); });
+  });
+
+  /* mesma ideia, mas na grade de semana do desktop: célula = 1h fixa,
+     o arrasto trava na coluna (dia) onde começou e só varia a hora,
+     usando elementFromPoint pra sempre achar a célula certa por baixo do ponteiro */
+  root.querySelectorAll('.wk-grid-hours[data-tlgrid]').forEach(grid=>{
+    const PX=54; // .wk-grid .cell / .h-label height
+    const baseHour=Number(grid.dataset.basehour);
+    let mode=null, downX=0, downY=0, anchorDay=null, anchorX=0, startMin=0, selEl=null;
+
+    function cellMinute(cell, clientY){
+      const r=cell.getBoundingClientRect();
+      const frac=Math.max(0, Math.min(1, (clientY-r.top)/r.height));
+      const hr=Number(cell.dataset.hr);
+      return hr*60 + Math.round(frac*60/15)*15;
+    }
+    function showSel(anchorCell, a, b){
+      if(!selEl){
+        selEl=document.createElement('div');
+        selEl.className='tk-select';
+        selEl.innerHTML='<span class="tk-select-label"></span>';
+        grid.appendChild(selEl);
+      }
+      const gr=grid.getBoundingClientRect(), cr=anchorCell.getBoundingClientRect();
+      const s=Math.min(a,b), e=Math.max(a,b);
+      const top=((s-baseHour*60)/60)*PX, height=Math.max(((e-s)/60)*PX, 4);
+      selEl.style.cssText=`left:${cr.left-gr.left}px;width:${cr.width}px;top:${top}px;height:${height}px`;
+      selEl.querySelector('.tk-select-label').textContent = `${fromMin(s)} – ${fromMin(e)}`;
+    }
+    function clearSel(){ if(selEl){ selEl.remove(); selEl=null; } }
+
+    grid.addEventListener('pointerdown', e=>{
+      const cell=e.target.closest('.cell');
+      if(!cell || e.target.closest('.block') || e.button) return;
+      e.preventDefault();
+      mode='maybe'; downX=e.clientX; downY=e.clientY;
+      anchorDay=cell.dataset.tlday; anchorX=e.clientX;
+      startMin=cellMinute(cell, e.clientY);
+    });
+    grid.addEventListener('pointermove', e=>{
+      if(!mode) return;
+      const dx=e.clientX-downX, dy=e.clientY-downY;
+      if(mode==='maybe'){
+        if(Math.abs(dx)<6 && Math.abs(dy)<6) return;
+        mode = Math.abs(dy)>Math.abs(dx) ? 'drag' : 'scroll';
+      }
+      if(mode==='drag'){
+        e.preventDefault();
+        const under=document.elementFromPoint(anchorX, e.clientY);
+        const cell=under && under.closest('.cell[data-tlday="'+anchorDay+'"]');
+        if(cell) showSel(cell, startMin, cellMinute(cell, e.clientY));
+      }
+    });
+    grid.addEventListener('pointerup', e=>{
+      const dx=e.clientX-downX, dy=e.clientY-downY;
+      const moved=Math.abs(dx)>6||Math.abs(dy)>6;
+      if(mode==='drag'){
+        const under=document.elementFromPoint(anchorX, e.clientY);
+        const cell=under && under.closest('.cell[data-tlday="'+anchorDay+'"]');
+        const endMin = cell ? cellMinute(cell, e.clientY) : startMin+60;
+        clearSel();
+        let s=Math.min(startMin,endMin), en=Math.max(startMin,endMin);
+        if(en-s<30) en=s+60;
+        openSheet(null, { date:anchorDay, time:fromMin(s), endTime:fromMin(en) });
+      } else if(mode==='maybe' && !moved && anchorDay){
+        openSheet(null, { date:anchorDay, time:fromMin(startMin), endTime:fromMin(startMin+60) });
+      }
+      mode=null; clearSel();
+    });
+    grid.addEventListener('pointercancel', ()=>{ mode=null; clearSel(); });
+  });
 }
 
 /* ==========================================================
    SHEET / FORMULÁRIO
    ========================================================== */
-function openSheet(item){
+function openSheet(item, prefill){
   S.editing = item || null;
   const F=S.form;
 
@@ -661,18 +845,22 @@ function openSheet(item){
     $('f-delete').classList.remove('hidden');
     F.pickCursor=parse(item.start_date);
   } else {
-    F.kind='event'; F.start=S.selected; F.end=S.selected;
+    const d = (prefill && prefill.date) || S.selected;
+    F.kind='event'; F.start=d; F.end=d;
     $('sheet-title').textContent='Novo item';
-    $('f-title').value=''; $('f-time').value=''; $('f-end-time').value='';
+    $('f-title').value='';
+    $('f-time').value = (prefill && prefill.time) || '';
+    $('f-end-time').value = (prefill && prefill.endTime) || '';
     Editor.load([]);
     F.repeat='none'; F.priority=1; F.nag=false;
     $('f-delete').classList.add('hidden');
-    F.pickCursor=parse(S.selected);
+    F.pickCursor=parse(d);
   }
   F.picking='start';
 
   document.querySelectorAll('#f-kind button').forEach(b=>b.classList.toggle('on', b.dataset.kind===F.kind));
   renderRange(); renderPicker(); updateTimeHint(); renderOptions();
+  if(prefill && prefill.time) setTimeout(()=>$('f-title').focus(), 260);
 
   $('backdrop').classList.remove('hidden');
   $('sheet').classList.remove('hidden');

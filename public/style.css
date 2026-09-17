@@ -40,8 +40,9 @@ button{cursor:pointer;border:none;background:none;letter-spacing:-.03em}
 /* ============ layout ============ */
 .app{display:flex;min-height:100dvh}
 .sidebar{display:none}
-.main{flex:1;min-width:0}
-.container{width:100%;max-width:1160px;margin:0 auto;padding:18px 16px 40px}
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.container{width:100%;max-width:1160px;margin:0 auto;padding:18px 16px 40px;flex:1;display:flex;flex-direction:column;min-height:0}
+#view-root{flex:1;display:flex;flex-direction:column;min-height:0}
 
 /* ============ header ============ */
 .topbar{display:flex;align-items:flex-start;gap:12px;margin-bottom:18px}
@@ -137,6 +138,13 @@ button{cursor:pointer;border:none;background:none;letter-spacing:-.03em}
 .group-head .right{margin-left:auto;font-size:11.5px;color:var(--ink-3);font-weight:700}
 .group-body{display:flex;flex-direction:column;gap:5px}
 
+/* visão Dia: a régua estica até o fim da tela, como um board de agenda */
+.day-card{flex:1;display:flex;flex-direction:column;min-height:0}
+.day-card .group{flex:1;display:flex;flex-direction:column;min-height:0;margin-bottom:0}
+.day-card .group-body{flex:1;min-height:0}
+.day-card .tk{flex:1;display:flex;flex-direction:column;min-height:0}
+.day-card .tk-scroll{flex:1;min-height:0}
+
 /* ============ bloco de item ============ */
 .block{
   display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;
@@ -196,6 +204,7 @@ button{cursor:pointer;border:none;background:none;letter-spacing:-.03em}
 
 /* ============ semana desktop ============ */
 .wk-grid{display:grid;grid-template-columns:52px repeat(7,1fr)}
+.wk-grid-hours{position:relative;cursor:crosshair;user-select:none;-webkit-user-select:none}
 .wk-grid .corner{border-bottom:1px solid var(--line)}
 .wk-grid .col-head{
   padding:9px 6px;text-align:center;border-bottom:1px solid var(--line);
@@ -541,7 +550,21 @@ textarea{resize:vertical;min-height:66px;line-height:1.5}
 /* ============ timeline do dia (régua de horas) ============ */
 .tk{position:relative;margin-top:2px}
 .tk-scroll{overflow:auto;-webkit-overflow-scrolling:touch}
-.tk-track{position:relative;min-width:100%}
+.tk-track{position:relative;min-width:100%;cursor:crosshair;user-select:none;-webkit-user-select:none}
+
+/* retângulo de seleção enquanto arrasta pra criar um item */
+.tk-select{
+  position:absolute;z-index:2;pointer-events:none;
+  background:color-mix(in srgb, var(--accent) 18%, transparent);
+  border:1.5px dashed var(--accent);
+  border-radius:6px;
+}
+.tk-select-label{
+  position:absolute;top:4px;left:4px;z-index:4;
+  background:var(--accent);color:#fff;font-size:11px;font-weight:800;
+  padding:3px 8px;border-radius:6px;white-space:nowrap;
+  box-shadow:var(--shadow-sm);
+}
 
 /* marcas de hora */
 .tk-h{position:absolute;color:var(--ink-3);font-size:10px;font-weight:700;pointer-events:none}
@@ -550,7 +573,7 @@ textarea{resize:vertical;min-height:66px;line-height:1.5}
 /* --- modo horizontal (desktop) --- */
 .tk-h-mode .tk-scroll{padding-top:20px;padding-bottom:4px}
 .tk-h-mode .tk-h{top:-18px;bottom:0;border-left:1px solid var(--line-soft)}
-.tk-h-mode .tk-h span{position:absolute;top:-16px;left:4px;white-space:nowrap}
+.tk-h-mode .tk-h span{position:absolute;top:0;left:4px;white-space:nowrap}
 .tk-h-mode .tk-blocks{position:absolute;inset:0}
 .tk-h-mode .tk-block{position:absolute}
 
@@ -570,7 +593,7 @@ textarea{resize:vertical;min-height:66px;line-height:1.5}
   position:absolute;background:#e5484d;color:#fff;font-size:9px;font-weight:800;
   padding:1.5px 5px;border-radius:4px;letter-spacing:-.01em;
 }
-.tk-h-mode .tk-now-tag{top:-17px;left:-16px}
+.tk-h-mode .tk-now-tag{top:-10px;left:-16px}
 .tk-v-mode .tk-now-tag{left:0;top:-8px}
 
 /* blocos na régua */

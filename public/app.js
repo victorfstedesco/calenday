@@ -577,10 +577,17 @@ function renderList(root){
   const from=ymd(addDays(new Date(),-14)), until=ymd(addDays(new Date(),-1));
   for(const it of S.items){
     if(it.kind!=='task') continue;
-    const missed=Recurrence.occurrencesBetween(it, from, until).filter(ds=>!isDone(it, ds));
-    if(!missed.length) continue;
-    if(isRepeating(it)) overdue.push({ it, ds: missed[missed.length-1], skipped: missed.length-1 });
-    else missed.forEach(ds=>overdue.push({ it, ds, skipped:0 }));
+    if(isRepeating(it)){
+      // repete todo dia: cada ocorrência perdida é um atraso à parte
+      const missed=Recurrence.occurrencesBetween(it, from, until).filter(ds=>!isDone(it, ds));
+      if(missed.length) overdue.push({ it, ds: missed[missed.length-1], skipped: missed.length-1 });
+    } else {
+      // item único (um dia ou um período): só atrasa quando o prazo final
+      // (end_date) já passou, não a cada dia dentro do período
+      if(it.end_date < todayStr && it.end_date >= from && !isDone(it, it.end_date)){
+        overdue.push({ it, ds: it.end_date, skipped: 0 });
+      }
+    }
   }
   overdue.sort((a,b)=> (b.it.priority??1)-(a.it.priority??1) || b.ds.localeCompare(a.ds));
 

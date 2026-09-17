@@ -180,17 +180,19 @@ document.querySelectorAll('[data-new]').forEach(b=>{
    ========================================================== */
 function render(){
   renderControls();
+  document.querySelector('.add-btn').classList.toggle('hidden', S.view==='settings');
   const root=$('view-root');
   if(S.view==='week') renderWeek(root);
   else if(S.view==='month') renderMonth(root);
   else if(S.view==='day') renderDay(root);
+  else if(S.view==='settings') renderSettings(root);
   else renderList(root);
 }
 
 /* barra de controles abaixo do header (só no modo calendário) */
 function renderControls(){
   const c=$('controls');
-  if(S.view==='list'){ c.innerHTML=''; return; }
+  if(S.view==='list' || S.view==='settings'){ c.innerHTML=''; return; }
   const isWeek=S.view==='week';
   const isDay=S.view==='day';
   let now;
@@ -621,6 +623,62 @@ function renderList(root){
   root.innerHTML = (dates.length||overdue.length) ? h
     : `<div class="empty">Nada nas próximas semanas.<br>Toque em Novo para criar seu primeiro item.</div>`;
   wire(root);
+}
+
+/* ---------- CONFIGURAÇÕES ---------- */
+async function renderSettings(root){
+  $('page-title').textContent='Configurações';
+  $('page-sub').textContent='Resumo diário por email';
+
+  root.innerHTML = `<div class="card card-pad" style="max-width:420px">
+    <div class="field">
+      <label class="switch-row" id="cfg-enabled-row">
+        <div>
+          <div class="sw-title">Resumo diário por email</div>
+          <div class="sw-hint">Um email de manhã com o que falta até a tarde, outro na virada da tarde com o resto do dia</div>
+        </div>
+        <span class="sw" id="cfg-enabled"><span class="sw-knob"></span></span>
+      </label>
+    </div>
+    <div class="field">
+      <div class="label">MANHÃ <span class="opt">itens de hoje antes do horário da tarde</span></div>
+      <input type="time" id="cfg-morning" style="width:150px">
+    </div>
+    <div class="field">
+      <div class="label">TARDE <span class="opt">itens de hoje a partir deste horário</span></div>
+      <input type="time" id="cfg-split" style="width:150px">
+    </div>
+    <div class="hint" style="margin-bottom:16px">Cada resumo só chega se houver algo pendente naquele período.</div>
+    <button class="btn btn-primary" id="cfg-save" style="width:auto;padding-left:22px;padding-right:22px">Salvar</button>
+  </div>`;
+
+  let enabled = true;
+  try{
+    const s = await api('/settings');
+    enabled = s.digestEnabled;
+    $('cfg-morning').value = s.digestMorningTime;
+    $('cfg-split').value = s.digestSplitTime;
+    $('cfg-enabled').classList.toggle('on', enabled);
+  }catch(e){ toast(e.message); }
+
+  $('cfg-enabled-row').addEventListener('click', e=>{
+    e.preventDefault();
+    enabled = !enabled;
+    $('cfg-enabled').classList.toggle('on', enabled);
+  });
+
+  $('cfg-save').addEventListener('click', async ()=>{
+    const morning = $('cfg-morning').value, split = $('cfg-split').value;
+    if(!morning || !split){ toast('Preencha os dois horários'); return; }
+    if(morning >= split){ toast('O horário da manhã precisa ser antes do da tarde'); return; }
+    try{
+      await api('/settings', {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ digestMorningTime: morning, digestSplitTime: split, digestEnabled: enabled }),
+      });
+      toast('Configurações salvas');
+    }catch(e){ toast(e.message); }
+  });
 }
 
 /* card de item dentro da timeline, sempre amarrado a uma data.

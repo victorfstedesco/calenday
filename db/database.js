@@ -111,4 +111,15 @@ if (pending.length) {
   for (const r of pending) ins.run(r.id, r.user_id, r.start_date);
 }
 
+// preferências do resumo diário por email, configuráveis pelo usuário
+for (const [col, ddl] of [
+  ['digest_morning_time',        "ALTER TABLE users ADD COLUMN digest_morning_time TEXT DEFAULT '07:00'"],
+  ['digest_split_time',          "ALTER TABLE users ADD COLUMN digest_split_time TEXT DEFAULT '14:00'"],
+  ['digest_enabled',             "ALTER TABLE users ADD COLUMN digest_enabled INTEGER DEFAULT 1"],
+  ['digest_morning_sent_date',   "ALTER TABLE users ADD COLUMN digest_morning_sent_date TEXT"],
+  ['digest_afternoon_sent_date', "ALTER TABLE users ADD COLUMN digest_afternoon_sent_date TEXT"],
+]) {
+  if (!db.prepare("PRAGMA table_info(users)").all().map(c => c.name).includes(col)) db.exec(ddl);
+}
+
 module.exports = db;

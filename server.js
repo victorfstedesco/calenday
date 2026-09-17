@@ -7,6 +7,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const itemRoutes = require('./routes/items');
 const pushRoutes = require('./routes/push');
+const settingsRoutes = require('./routes/settings');
 const notifier = require('./services/notifier');
 
 const app = express();
@@ -33,6 +34,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api/auth', authRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Erros de upload (tamanho, tipo de arquivo) viram JSON em vez de HTML
 app.use((err, req, res, next) => {

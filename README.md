@@ -67,6 +67,21 @@ Regras de notificação:
 - O email sai só no primeiro aviso do dia; a insistência é só por push,
   para não encher a caixa de entrada.
 
+### Resumo diário por email
+
+Além do aviso por item, o servidor manda um resumo por email em dois
+horários — **manhã** e **tarde** — configuráveis por usuário na tela
+**Configurações** do próprio app (padrão `07:00` e `14:00`):
+
+- **Manhã**: o que falta de hoje com horário antes do horário da tarde,
+  mais os itens "dia inteiro".
+- **Tarde**: o que falta de hoje com horário a partir daquele horário.
+
+Cada resumo só é enviado se houver algo pendente naquele período (não avisa
+à toa), e traz um botão **Ver demandas** que leva direto para o app — o
+link usa a variável `APP_URL` do `.env` (só isso continua sendo configuração
+de servidor, já que é o mesmo endereço pra todo mundo).
+
 ---
 
 ## Instalação no servidor
@@ -109,6 +124,8 @@ Preencha:
   Com Gmail: host `smtp.gmail.com`, porta `587`, `SMTP_SECURE=false`,
   usuário é o email completo, e a senha é uma **senha de app** gerada em
   myaccount.google.com > Segurança (a senha normal da conta não funciona).
+- `APP_URL` — endereço público do app (ex: `https://calenday.seudominio.com`),
+  usado no botão "Ver demandas" do resumo diário por email.
 
 ### 4. Rodar como serviço
 

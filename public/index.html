@@ -34,6 +34,10 @@
   <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
   </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.2"/>
+    <path d="M19.4 13.5a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.04 1.56V20a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.96 18.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.7 1.7 0 0 0 .34-1.87 1.7 1.7 0 0 0-1.56-1.04H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.64 8.96a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.04-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.14.6.6 1.05 1.56 1.04H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.46Z"/>
+  </symbol>
 </svg>
 
 <!-- ===== LOGIN ===== -->
@@ -59,6 +63,7 @@
     <div class="sec">VISUALIZAR</div>
     <button class="nav-item on" data-view="week"><svg><use href="#i-cal"/></svg>Calendário</button>
     <button class="nav-item" data-view="list"><svg><use href="#i-list"/></svg>Lista</button>
+    <button class="nav-item" data-view="settings"><svg><use href="#i-gear"/></svg>Configurações</button>
     <div class="spacer"></div>
     <button class="nav-item" id="side-logout"><svg><use href="#i-out"/></svg>Sair</button>
   </aside>
@@ -74,6 +79,7 @@
           <div class="view-toggle" id="view-toggle">
             <button data-view="week" class="on" title="Calendário"><svg><use href="#i-cal"/></svg></button>
             <button data-view="list" title="Lista"><svg><use href="#i-list"/></svg></button>
+            <button data-view="settings" title="Configurações"><svg><use href="#i-gear"/></svg></button>
           </div>
           <button class="add-btn" data-new><svg><use href="#i-plus"/></svg>Novo</button>
         </div>

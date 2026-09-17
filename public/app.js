@@ -399,9 +399,13 @@ function renderMonth(root){
   }
 
   const sel=S.selected;
-  const dayItems=itemsOn(sel);
+  const dayItems=itemsOn(sel).sort((a,b)=>
+    (b.priority??1)-(a.priority??1) || (a.time?0:1)-(b.time?0:1) || (a.time||'').localeCompare(b.time||''));
 
-  const agenda = renderDayTimeline(sel);
+  const agendaBody = dayItems.length
+    ? `<div class="tl-items">${dayItems.map(it=>itemHtml(it, sel, false)).join('')}</div>`
+    : `<div class="empty">Nada marcado neste dia</div>`;
+  const agenda = groupHtml(fmtLong(sel), dayItems.length || null, null, agendaBody);
 
   const cal=`<div class="card card-pad">
     <div class="dow"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>

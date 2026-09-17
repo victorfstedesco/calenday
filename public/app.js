@@ -549,10 +549,21 @@ function renderList(root){
 
   // expande ocorrências dia a dia, de hoje até 3 semanas à frente
   const byDate={};
+  const occByItem={}; // it.id -> datas (ordenadas) em que aparece na janela visível
   for(const it of S.items){
-    for(const ds of Recurrence.occurrencesBetween(it, todayStr, ymd(addDays(new Date(), DAYS_AHEAD)))){
+    const occs = Recurrence.occurrencesBetween(it, todayStr, ymd(addDays(new Date(), DAYS_AHEAD)));
+    occByItem[it.id]=occs;
+    for(const ds of occs){
       (byDate[ds] ||= []).push(it);
     }
+  }
+  // ocorrência "do meio" de um item repetido ou de período: nem a primeira
+  // nem a última dentro dos dias exibidos, some com opacidade pra não
+  // poluir a lista com o mesmo item repetido dia após dia
+  function isMiddleOcc(it, ds){
+    if(!isRepeating(it) && !isMulti(it)) return false;
+    const occs=occByItem[it.id];
+    return occs && occs.length>2 && ds!==occs[0] && ds!==occs[occs.length-1];
   }
   /* Atrasados. Para um item que se repete, mostrar todas as ocorrências
      perdidas viraria uma lista infinita, então entra só a mais recente. */
@@ -602,7 +613,7 @@ function renderList(root){
           ${isToday?'<span class="tl-now">agora</span>':''}
           <span class="tl-count">${list.length}</span>
         </div>
-        <div class="tl-items">${list.map(it=>itemHtml(it, ds, false)).join('')}</div>
+        <div class="tl-items">${list.map(it=>itemHtml(it, ds, false, 0, isMiddleOcc(it,ds))).join('')}</div>
       </div></div>`;
   }
 
@@ -612,11 +623,14 @@ function renderList(root){
   wire(root);
 }
 
-/* card de item dentro da timeline, sempre amarrado a uma data */
-function itemHtml(it, ds, late, skipped){
+/* card de item dentro da timeline, sempre amarrado a uma data.
+   dim = ocorrência "do meio" de um item repetido (não é a primeira nem a
+   última dentro da janela visível), fica com menos opacidade pra não
+   poluir a lista com o mesmo item repetido dia após dia. */
+function itemHtml(it, ds, late, skipped, dim){
   const done=isDone(it, ds);
   const checkable = it.kind==='task';
-  return `<div class="item ${done?'done':''} ${late?'late':''} ${(it.priority??1)===2?'high':''}">
+  return `<div class="item ${done?'done':''} ${late?'late':''} ${(it.priority??1)===2?'high':''} ${dim?'dim':''}">
     <div class="item-row">
       <button class="check ${done?'on':''} ${checkable?'':'na'}"
               data-done="${it.id}" data-date="${ds}" data-val="${done?0:1}"

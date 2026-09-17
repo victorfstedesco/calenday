@@ -184,6 +184,7 @@ button{cursor:pointer;border:none;background:none;letter-spacing:-.03em}
   padding:11px 12px;box-shadow:var(--shadow-sm);
 }
 .item.done{opacity:.55}
+.item.dim{opacity:.5}
 .item-row{display:flex;gap:10px;align-items:flex-start}
 .check{
   width:19px;height:19px;border-radius:6px;border:1.5px solid #d7dae1;
